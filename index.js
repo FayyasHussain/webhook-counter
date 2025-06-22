@@ -1,9 +1,11 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
 require('dotenv').config();
 console.log('Slack URL from .env:', process.env.SLACK_WEBHOOK_URL);
 
 const express = require('express');
 const axios = require('axios');
-const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -11,20 +13,18 @@ const port = process.env.PORT || 3000;
 // Middleware to parse JSON body
 app.use(express.json());
 
-// Simple counter stored in a file
-const COUNTER_FILE = 'counter.txt';
 
-// Ensure counter file exists
-if (!fs.existsSync(COUNTER_FILE)) {
-  fs.writeFileSync(COUNTER_FILE, '0');
-}
 
 // Route to handle incoming webhooks
 app.post('/webhook', async (req, res) => {
-  try {
+  try { 
     // Read and increment counter
-    let count = parseInt(fs.readFileSync(COUNTER_FILE, 'utf8'), 10) + 1;
-    fs.writeFileSync(COUNTER_FILE, count.toString());
+     const counter = await prisma.counter.upsert({
+     where: { id: 1 },
+     update: { count: { increment: 1 } },
+     create: { id: 1, count: 1 }
+    });
+const count = counter.count;
 
     // Create the message
     const message = `${count}${getOrdinalSuffix(count)} user has entered the journey`;
@@ -58,3 +58,4 @@ function getOrdinalSuffix(n) {
 app.listen(port, () => {
   console.log(`🚀 Server is running on http://localhost:${port}`);
 });
+ 
